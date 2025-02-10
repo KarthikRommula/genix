@@ -64,33 +64,98 @@ function initDB() {
         };
     });
 }
+function displayQueue() {
+    let queueSection = document.getElementById('queue-section');
+    if (!queueSection) {
+        queueSection = document.createElement('div');
+        queueSection.id = 'queue-section';
+        queueSection.innerHTML = `
+            <div class="queue-header">
+                <h3>Queue</h3>
+                <span class="queue-subtitle">Next in queue</span>
+            </div>
+        `;
+        playlistContainer.parentNode.insertBefore(queueSection, playlistContainer.nextSibling);
+    }
+
+    queueSection.innerHTML = `
+        <div class="queue-header">
+            <h3>Queue</h3>
+            <span class="queue-subtitle">Next in queue</span>
+        </div>
+    `;
+
+    if (queue.length > 0) {
+        const queueList = document.createElement('ul');
+        queueList.id = 'queue-list';
+
+        queue.forEach((song, index) => {
+            const queueItem = document.createElement('li');
+            queueItem.innerHTML = `
+                <div class="queue-item">
+                    <div class="queue-item-info">
+                        <img src="${song.cover}" alt="cover" class="queue-cover">
+                        <div class="queue-text">
+                            <span class="queue-title">${song.displayName}</span>
+                            <span class="queue-artist">${song.artist}</span>
+                        </div>
+                    </div>
+                    <button class="remove-from-queue" title="Remove">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            const removeBtn = queueItem.querySelector('.remove-from-queue');
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeFromQueue(index);
+            });
+
+            queueList.appendChild(queueItem);
+        });
+
+        queueSection.appendChild(queueList);
+    } else {
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'empty-queue';
+        emptyMessage.textContent = 'Your queue is empty';
+        queueSection.appendChild(emptyMessage);
+    }
+}
+
+
 function addToQueue(song) {
     if (!song) return;
-    queue.push({...song}); // Create copy to avoid reference issues
+    queue.push({ ...song });
     showNotification('Added to queue: ' + song.displayName, 'success');
     displayQueue();
 }
+
+
 function removeFromQueue(index) {
     queue.splice(index, 1);
     displayQueue();
 }
 function playNext() {
     if (queue.length > 0) {
+        // Priority to manually queued songs
         const nextSong = queue.shift();
-        const songIndex = songs.findIndex(song => 
-            song.id === nextSong.id || 
+        const songIndex = songs.findIndex(song =>
+            song.id === nextSong.id ||
             (song.path === nextSong.path && song.displayName === nextSong.displayName)
         );
-        
+
         if (songIndex !== -1) {
             musicIndex = songIndex;
             loadMusic(songs[musicIndex]);
             playMusic();
         }
-        displayQueue();
     } else {
+        // If no songs in queue, play next in playlist
         changeMusic(1);
     }
+    displayQueue();
 }
 music.addEventListener('ended', playNext);
 async function loadSongsFromDB() {
@@ -167,17 +232,22 @@ function loadMusic(song) {
     background.src = song.cover;
     updateMediaSession(song);
 }
-
 function changeMusic(direction) {
-    musicIndex = (musicIndex + direction + songs.length) % songs.length;
-    loadMusic(songs[musicIndex]);
-    playMusic();
+    if (direction > 0 && queue.length > 0) {
+        // Play from queue if going forward
+        playNext();
+    } else {
+        // Normal playlist navigation
+        musicIndex = (musicIndex + direction + songs.length) % songs.length;
+        loadMusic(songs[musicIndex]);
+        playMusic();
+    }
 }
 
 function updateProgressBar() {
     const { duration, currentTime } = music;
     if (isNaN(duration)) return;
-    
+
     const progressPercent = (currentTime / duration) * 100;
     progress.style.width = `${progressPercent}%`;
 
@@ -198,9 +268,9 @@ playlistModal.id = 'playlist-modal';
 playlistModal.innerHTML = `
     <div class="playlist-content">
         <span id="close-playlist" class="close-playlist"><i class="fas fa-times"></i></span>
-        <h2><i class="fas fa-music"></i> Playlist</h2>
+        <h2> Playlist</h2>
         <ul id="playlist-container"></ul>
-        <button id="upload"><i class="fas fa-upload"></i></button>
+        <button id="upload"><i class="fas fa-box-open"></i></button>
     </div>
 `;
 document.body.appendChild(playlistModal);
@@ -213,62 +283,149 @@ function displayPlaylist() {
     if (!playlistContainer) return;
     playlistContainer.innerHTML = '';
 
+    // Create main playlist section
+    const playlistSection = document.createElement('div');
+    playlistSection.id = 'playlist-section';
+
     // Display songs
+    const songsList = document.createElement('ul');
+    songsList.id = 'queue-list';
+
     songs.forEach((song, index) => {
         const songItem = document.createElement('li');
-        const songTitle = document.createElement('span');
-        songTitle.textContent = `${song.displayName} - ${song.artist}`;
-        songItem.appendChild(songTitle);
+        songItem.className = 'queue-item';
 
-        songTitle.addEventListener('click', () => {
+        // Create song info container
+        const songInfoDiv = document.createElement('div');
+        songInfoDiv.className = 'queue-item-info';
+
+        // Add cover image if available
+        const coverImg = document.createElement('img');
+        coverImg.src = song.coverUrl || '/songs/2.jpg'; // Add a default cover image path
+        coverImg.className = 'queue-cover';
+        coverImg.alt = `${song.displayName} cover`;
+        songInfoDiv.appendChild(coverImg);
+        // Create text container
+        const textDiv = document.createElement('div');
+        textDiv.className = 'queue-text';
+
+        // Add title
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'queue-title';
+        titleSpan.textContent = song.displayName;
+
+        // Add artist
+        const artistSpan = document.createElement('span');
+        artistSpan.className = 'queue-artist';
+        artistSpan.textContent = song.artist;
+
+        textDiv.appendChild(titleSpan);
+        textDiv.appendChild(artistSpan);
+        songInfoDiv.appendChild(textDiv);
+
+        // Add click event for playing
+        songInfoDiv.addEventListener('click', () => {
             musicIndex = index;
             loadMusic(songs[index]);
             playMusic();
             togglePlaylist();
         });
 
+        songItem.appendChild(songInfoDiv);
+
+        // Create buttons container
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'queue-item-buttons';
+
+        // Add to queue button
         const queueBtn = document.createElement('button');
         queueBtn.innerHTML = '<i class="fas fa-plus"></i>';
-        queueBtn.className = 'add-to-queue';
+        queueBtn.className = 'remove-from-queue';
         queueBtn.title = 'Add to Queue';
         queueBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             addToQueue(song);
         });
-        songItem.appendChild(queueBtn);
+        buttonsDiv.appendChild(queueBtn);
 
-        if (song.id) {
+        // Delete button (if song has ID)
+        if (song?.id) {
             const deleteBtn = document.createElement('button');
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
-            deleteBtn.className = 'delete-song';
+            deleteBtn.className = 'remove-from-queue';
             deleteBtn.title = 'Delete Song';
+
             deleteBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (await showConfirmDialog('Are you sure you want to delete this song?')) {
-                    try {
-                        await deleteSong(song.id);
-                        await loadSongsFromDB();
-                        displayPlaylist();
-                        if (musicIndex === index) {
-                            musicIndex = 0;
-                            loadMusic(songs[0]);
-                            if (isPlaying) playMusic();
-                        }
-                        showNotification('Song deleted successfully', 'success');
-                    } catch (error) {
-                        console.error('Error deleting song:', error);
-                        showNotification('Error deleting song. Please try again.', 'error');
+
+                const userConfirmed = await showConfirmDialog('Are you sure you want to delete this song?');
+                if (!userConfirmed) return;
+
+                try {
+                    await deleteSong(song.id);
+                    await loadSongsFromDB();
+                    displayPlaylist();
+
+                    if (musicIndex === index) {
+                        musicIndex = 0;
+                        loadMusic(songs[0] || null);
+                        if (isPlaying && songs.length > 0) playMusic();
                     }
+
+                    showNotification('Song deleted successfully', 'success');
+                } catch (error) {
+                    console.error('Error deleting song:', error);
+                    showNotification('Error deleting song. Please try again.', 'error');
                 }
             });
-            songItem.appendChild(deleteBtn);
+
+            buttonsDiv.appendChild(deleteBtn);
         }
 
-        playlistContainer.appendChild(songItem);
+        songItem.appendChild(buttonsDiv);
+        songsList.appendChild(songItem);
     });
 
-    // Display queue separately
-    displayQueue();
+    playlistContainer.appendChild(songsList);
+
+    // Create and display queue section
+    const queueSection = document.createElement('div');
+    queueSection.id = 'queue-section';
+
+    const queueHeader = document.createElement('div');
+    queueHeader.className = 'queue-header';
+
+    const queueTitle = document.createElement('h3');
+    queueTitle.textContent = 'Queue';
+
+    const queueSubtitle = document.createElement('div');
+    queueSubtitle.className = 'queue-subtitle';
+
+    queueHeader.appendChild(queueTitle);
+    queueHeader.appendChild(queueSubtitle);
+    queueSection.appendChild(queueHeader);
+
+    // Display queue
+    if (queue.length > 0) {
+        const queueList = document.createElement('ul');
+        queueList.id = 'queue-list';
+
+        queue.forEach((song, index) => {
+            // Similar structure as above for queue items
+            const queueItem = document.createElement('li');
+            queueItem.className = 'queue-item';
+            // ... (repeat similar structure as song items but with remove from queue instead of add to queue)
+        });
+
+        queueSection.appendChild(queueList);
+    } else {
+        const emptyQueue = document.createElement('div');
+        emptyQueue.className = 'empty-queue';
+        emptyQueue.textContent = 'Your queue is empty';
+        queueSection.appendChild(emptyQueue);
+    }
+
+    playlistContainer.appendChild(queueSection);
 }
 function togglePlaylist() {
     playlistModal.classList.toggle('open');
@@ -313,7 +470,7 @@ async function checkSongExists(songName, hash) {
 }
 
 async function handleFileUpload(event) {
-    const files = Array.from(event.target.files); // Convert FileList to an array
+    const files = Array.from(event.target.files);
     if (files.length === 0) {
         showNotification('Please upload valid audio files.', 'error');
         return;
@@ -327,14 +484,18 @@ async function handleFileUpload(event) {
 
         try {
             const hash = await calculateFileHash(file);
-            const songName = file.name.replace(/\.[^/.]+$/, '');
+
+            // Remove [SPOTDOWNLOADER.COM] prefix from song name
+            let songName = file.name.replace(/\.[^/.]+$/, '');
+            songName = songName.replace(/^\[SPOTDOWNLOADER\.COM\]\s*/, '');
+            songName = songName.replace(/\s*\(.*\)$/, '');
 
             const { exists, reason } = await checkSongExists(songName, hash);
             if (exists) {
                 showNotification(
                     reason === 'content'
-                        ? `Skipping duplicate song: ${songName} (already uploaded).`
-                        : `Skipping song: ${songName} (a song with this name already exists).`,
+                        ? `Skipping duplicate song: ${songName}.`
+                        : `Skipping duplicate song: ${songName} (same content).`,
                     'error'
                 );
                 continue;
@@ -434,12 +595,12 @@ function showNotification(message, type = 'info') {
 function shuffleSongs() {
     const currentSong = songs[musicIndex];
     const remainingSongs = songs.filter((_, index) => index !== musicIndex);
-    
+
     for (let i = remainingSongs.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [remainingSongs[i], remainingSongs[j]] = [remainingSongs[j], remainingSongs[i]];
     }
-    
+
     songs = [currentSong, ...remainingSongs];
     musicIndex = 0;
     displayPlaylist();
@@ -503,3 +664,103 @@ function updateMediaSession(song) {
         navigator.mediaSession.setActionHandler("previoustrack", () => changeMusic(-1));
     }
 }
+const style = document.createElement('style');
+style.textContent = `
+    #queue-section {
+        margin-top: 24px;
+        padding: 0 16px;
+        color: #fff;
+    }
+
+    .queue-header {
+        margin-bottom: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 8px;
+        margin-top:5px
+    }
+
+    .queue-header h3 {
+        font-size: 24px;
+        margin: 0 0 4px 0;
+    }
+
+    .queue-subtitle {
+        color: #b3b3b3;
+        font-size: 14px;
+    }
+
+    #queue-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .queue-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .queue-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .queue-item-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .queue-cover {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        object-fit: cover;
+    }
+
+    .queue-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .queue-title {
+        font-size: 14px;
+        color: #fff;
+    }
+
+    .queue-artist {
+        font-size: 12px;
+        color: #b3b3b3;
+    }
+
+    .remove-from-queue {
+        background: none;
+        border: none;
+        color: #b3b3b3;
+        cursor: pointer;
+        padding: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .queue-item:hover .remove-from-queue {
+        opacity: 1;
+    }
+
+    .remove-from-queue:hover {
+        color: #fff;
+    }
+
+    .empty-queue {
+        text-align: center;
+        color: #b3b3b3;
+        font-size: 14px;
+        padding: 24px 0;
+        margin-top:-20px
+    }
+`;
+
+document.head.appendChild(style);

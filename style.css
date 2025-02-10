@@ -137,7 +137,7 @@ h3 {
 .progress {
     position: absolute;
     height: 100%;
-    background: linear-gradient(90deg, #1db954, #1ed760);
+    background: linear-gradient(90deg, #f89ca5, #f15e6c);
     width: 0%;
     /* Dynamic Width */
     transition: width 0.3s ease, box-shadow 0.3s ease;
@@ -150,11 +150,21 @@ h3 {
     transform: translate(50%, -50%);
     width: 14px;
     height: 14px;
-    background-color: #1ed760;
+    background-color: #f15e6c;
     border: 2px solid #fff;
-    border-radius: 0%;
+    border-radius: 50%; /* Changed to circular for smoother interaction */
     pointer-events: none;
     transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+/* Hover Effect */
+.player-progress:hover {
+    background: linear-gradient(90deg, #1db954 0%, #1c8e40 100%);
+    box-shadow: 0px 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.player-progress:active {
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .music-duration {
@@ -200,12 +210,12 @@ h3 {
 
 .play-button {
     font-size: 40px;
-    color: var(--primary);
+    color: #f15e6c;
     transition: color 0.3s ease;
 }
 
 .play-button:hover {
-    color: #1ed760;
+    color: #f15e6c;
 }
 
 /* Additional Styles for Playlist and Upload Buttons */
@@ -236,6 +246,30 @@ h3 {
     overflow-y: auto; /* Allow scrolling if playlist gets long */
     display: flex;
     flex-direction: column;
+}
+#playlist-modal::-webkit-scrollbar {
+    width: 8px; /* Narrow scrollbar */
+}
+
+#playlist-modal::-webkit-scrollbar-thumb {
+    background-color: #f15e6c; /* Highlight color for the scrollbar */
+    border-radius: 0px; /* Rounded edges for a smooth look */
+    border: 2px solid rgba(0, 0, 0, 0.2); /* Slight border to make the thumb stand out */
+}
+
+#playlist-modal::-webkit-scrollbar-track {
+    background-color: transparent; /* Light background for the track */
+    border-radius: 4px; /* Rounded edges for the track */
+}
+
+/* Hover Effect for Scrollbar */
+#playlist-modal::-webkit-scrollbar-thumb:hover {
+    background-color: #ff5c8d; /* Lighter shade on hover for visual feedback */
+}
+
+/* Optional: Smooth scrolling for better experience */
+#playlist-modal {
+    scroll-behavior: smooth;
 }
 #playlist-container{
     margin-top: 20px;
@@ -289,92 +323,127 @@ h3 {
 }
 
 /* Upload button styling */
+/* Upload Button */
 #upload {
     cursor: pointer;
     position: absolute;
-    bottom: 20px;
-    left: 50%;
+    top: 4px;
     transform: translateX(-50%);
-    transition: color 0.3s;
-    color: white;
+    transition: all 0.3s ease;
+    color: #b3b3b3;
     background: transparent;
-    border-color: transparent;
-    font-size: x-large;
-}
-.delete-song {
-    margin-left: 10px;
-    color: #ff4444;
-    background: none;
     border: none;
-    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-left: 8px;
+    font-size: 18px;
+    
 }
+
+#upload:hover {
+    color: white;
+    transform: translateX(-50%) scale(1.05);
+}
+
+/* Notification Overlay */
 .notification-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     opacity: 0;
     animation: fadeIn 0.3s forwards;
+    backdrop-filter: blur(5px);
 }
 
+/* Notification Dialog */
 .notification-dialog {
-    background: white;
-    padding: 20px;
+    background: #282828;
+    padding: 24px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     max-width: 400px;
     width: 90%;
     transform: scale(0.9);
     animation: scaleIn 0.3s forwards;
+    color: #fff;
 }
 
+/* Dialog Buttons Container */
 .notification-buttons {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 16px;
+    margin-top: 24px;
 }
 
+/* Dialog Buttons */
 .notification-btn {
-    padding: 8px 16px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 4px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .confirm-btn {
-    background: #4CAF50;
-    color: white;
+    background: transparent;
+    color: #fff;
+    border: 1px solid #b3b3b3;
+}
+
+.confirm-btn:hover {
+    background: #f15e6c;
+    transform: scale(1.05);
 }
 
 .cancel-btn {
-    background: #f44336;
-    color: white;
+    background: transparent;
+    color: #fff;
+    border: 1px solid #b3b3b3;
 }
-p{
-    color: black;
+
+.cancel-btn:hover {
+    border-color: #fff;
+    transform: scale(1.05);
 }
+
+/* Dialog Text */
+.notification-dialog p {
+    color: #fff;
+    font-size: 16px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Toast Notifications */
 .notification {
+    width: 20%;
     position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 4px;
-    background: white;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    bottom: 24px;
+    right: 24px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    background: #282828;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     transform: translateX(120%);
-    transition: transform 0.3s ease-out;
+    transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
     z-index: 1000;
+    min-width: 300px;
 }
 
 .notification.show {
@@ -382,53 +451,84 @@ p{
 }
 
 .notification.success {
-    background: #4CAF50;
+    background: #f15e6c;
     color: white;
 }
 
 .notification.error {
-    background: #f44336;
+    background: #f15e6c;
     color: white;
 }
 
 .notification.info {
-    background: #2196F3;
+    background: #2e77d0;
     color: white;
 }
 
 .notification-icon {
     font-weight: bold;
+    font-size: 18px;
 }
 
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-    to { transform: scale(1); }
-}
-
-.fade-out {
-    opacity: 0;
-    transition: opacity 0.3s;
-}
+/* Control Buttons */
 #shuffle {
     background: none;
     border: none;
-    color: #fff;
+    color: #b3b3b3;
     font-size: 1.2rem;
     cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 8px;
+    border-radius: 50%;
+}
+
+#shuffle:hover, #shuffle.active {
+    opacity: 1;
+    color: white;
 }
 
 .add-to-queue {
     background: none;
     border: none;
-    color: #fff;
-    font-size: 0.9rem;
+    color: #b3b3b3;
+    font-size: 1rem;
     cursor: pointer;
     margin-left: 10px;
+    transition: all 0.2s ease;
+    opacity: 0;
+    padding: 8px;
+    border-radius: 50%;
 }
 
-.add-to-queue:hover {
-    color: #1db954;
+.queue-item:hover .add-to-queue {
+    opacity: 1;
+    color: white;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.9); }
+    to { transform: scale(1); }
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.fas.fa-trash:hover{
+    color: red;
+}
+
+@media (max-width: 900px){
+    #playlist-modal{
+        width: 350px;
+    }
+    .container{
+        background-color: transparent;
+    }
 }
