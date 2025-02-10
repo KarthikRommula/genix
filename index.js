@@ -271,6 +271,7 @@ playlistModal.innerHTML = `
         <h2> Playlist</h2>
         <ul id="playlist-container"></ul>
         <button id="upload"><i class="fas fa-box-open"></i></button>
+
     </div>
 `;
 document.body.appendChild(playlistModal);
@@ -732,8 +733,9 @@ style.textContent = `
     }
 
     .queue-artist {
-        font-size: 12px;
-        color: #b3b3b3;
+        font-size: 0px;
+        color:transparent;
+        cursor: none;
     }
 
     .remove-from-queue {
