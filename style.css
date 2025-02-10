@@ -412,3 +412,23 @@ p{
     opacity: 0;
     transition: opacity 0.3s;
 }
+#shuffle {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.add-to-queue {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.add-to-queue:hover {
+    color: #1db954;
+}
