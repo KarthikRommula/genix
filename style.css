@@ -524,4 +524,9 @@ h3 {
     .container{
         background-color: transparent;
     }
+    .queue-artist {
+        font-size: 0px;
+        color:transparent;
+        cursor: none;
+    }
 }
