@@ -8,7 +8,7 @@
     './script.js',
     './manifest.json',
     './icons/icon-192x192.png',
-    './icons/icon-512x512.png',
+    './icons/icon-512x512.jpg',
     './songs/2.jpg',
     './songs/1.mp3',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
