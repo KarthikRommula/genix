@@ -7,8 +7,8 @@
     "scope": ".",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#121212",
-    "theme_color": "#1e1e1e",
+    "background_color": "black",
+    "theme_color": "black",
     "prefer_related_applications": false,
     "categories": ["music", "entertainment"],
     "icons": [
