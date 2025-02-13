@@ -644,6 +644,9 @@ button {
         pointer-events: none;
         /* Disables clicks */
     }
+    .notification{
+        width: 10%;
+    }
 
 
 }
