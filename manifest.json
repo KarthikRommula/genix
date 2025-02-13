@@ -13,13 +13,13 @@
     "categories": ["music", "entertainment"],
     "icons": [
       {
-        "src":"img/imresizer-1739464910450.jpg",
+        "src":"img/logo_black-192x192.jpg",
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "any maskable"
       },
       {
-        "src": "img/logo-512x512.jpg",
+        "src": "img/logo_black-512x512.jpg",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any maskable"
