@@ -550,12 +550,6 @@ button {
     opacity: 1;
 }
 
-.background img {
-    width: 100%;
-    height: 100%;
-    object-fit: player;
-}
-
 .visually-hidden {
     font-size: 0;
     color: transparent;
@@ -614,4 +608,42 @@ button {
         color: transparent;
         cursor: none;
     }
+
+    .queue-title {
+        pointer-events: none;
+        /* Disables clicks */
+    }
+    .queue-text {
+        pointer-events: none;
+        /* Disables clicks */
+    }
+}
+
+@media (max-width: 720px) {
+    #playlist-modal {
+        width: 300px;
+        box-shadow: none;
+    }
+
+    .container {
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    .queue-artist {
+        font-size: 0px;
+        color: transparent;
+        cursor: none;
+    }
+
+    .queue-title {
+        pointer-events: none;
+        /* Disables clicks */
+    }
+    .queue-text {
+        pointer-events: none;
+        /* Disables clicks */
+    }
+
+
 }

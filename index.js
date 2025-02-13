@@ -725,11 +725,14 @@ style.textContent = `
     .queue-text {
         display: flex;
         flex-direction: column;
+         pointer-events: none;
+        cursor: default;
     }
 
     .queue-title {
         font-size: 14px;
         color: #fff;
+        
     }
 
     .queue-artist {
