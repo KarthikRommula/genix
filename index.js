@@ -766,9 +766,11 @@ style.textContent = `
 `;
 
 document.head.appendChild(style);
+
+// Add this to your existing script.js file
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
+      navigator.serviceWorker.register('./service-worker.js', { scope: './' })
         .then((registration) => {
           console.log('ServiceWorker registration successful');
         })
@@ -777,3 +779,13 @@ if ('serviceWorker' in navigator) {
         });
     });
   }
+  
+  // Add install prompt handling
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent Chrome 67 and earlier from automatically showing the prompt
+    e.preventDefault();
+    // Stash the event so it can be triggered later
+    deferredPrompt = e;
+    // Show your install button or UI element here if you have one
+  });
