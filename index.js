@@ -770,22 +770,62 @@ document.head.appendChild(style);
 // Add this to your existing script.js file
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js', { scope: './' })
-        .then((registration) => {
-          console.log('ServiceWorker registration successful');
-        })
-        .catch((error) => {
-          console.error('ServiceWorker registration failed:', error);
-        });
+        navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+            .then((registration) => {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch((error) => {
+                console.error('ServiceWorker registration failed:', error);
+            });
     });
-  }
-  
-  // Add install prompt handling
-  let deferredPrompt;
-  window.addEventListener('beforeinstallprompt', (e) => {
+}
+
+// Add install prompt handling
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent Chrome 67 and earlier from automatically showing the prompt
     e.preventDefault();
     // Stash the event so it can be triggered later
     deferredPrompt = e;
     // Show your install button or UI element here if you have one
-  });
+});
+// Add to your JavaScript
+document.addEventListener('DOMContentLoaded', () => {
+    // Preload images when needed
+    const preloadImage = (src) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = src;
+        });
+    };
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const coverImage = document.getElementById('cover');
+    const skeletonWrapper = document.querySelector('.skeleton-wrapper');
+
+    function handleImageLoad() {
+        coverImage.classList.add('loaded');
+        skeletonWrapper.classList.add('hidden');
+    }
+
+    function handleImageChange(newSrc) {
+        // Reset states
+        coverImage.classList.remove('loaded');
+        skeletonWrapper.classList.remove('hidden');
+        
+        // Set new image
+        coverImage.src = newSrc;
+        
+        // Handle loading
+        if (coverImage.complete) {
+            handleImageLoad();
+        } else {
+            coverImage.addEventListener('load', handleImageLoad, { once: true });
+        }
+    }
+
+    // To use when changing songs:
+    // handleImageChange('path/to/new/album/cover.jpg');
+});
