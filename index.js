@@ -725,8 +725,7 @@ style.textContent = `
     .queue-text {
         display: flex;
         flex-direction: column;
-         pointer-events: none;
-        cursor: default;
+        
     }
 
     .queue-title {
