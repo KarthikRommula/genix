@@ -12,10 +12,10 @@
     <link rel="manifest" href="manifest.json">
 
     <!-- Apple-specific meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Genix">
-    <link rel="apple-touch-icon" href="img/logo_white-192x192.jpg">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-title" content="Genix">
+    <link rel="touch-icon" href="img/logo_white-192x192.jpg">
 
     <!-- Preload critical assets -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -31,18 +31,20 @@
 
 <body>
     <div class="background">
+        <div class="background-skeleton"></div>
         <!-- Add width, height, and alt attributes to images -->
-        <img src="songs/2.jpg" id="bg-img" width="1920" height="1080" alt="Background image" loading="lazy">
+        <img src="songs/optimized_pic.jpg" id="bg-img" width="1920" height="1080" alt="Background image">
     </div>
 
     <div class="container">
         <div class="player-img">
+            <div class="player-img-skeleton"></div>
             <!-- Add width, height, and alt attributes -->
-            <img src="songs/2.jpg" class="active" id="cover" width="300" height="300" alt="Album cover" loading="lazy">
+            <img src="songs/optimized_pic.jpg" class="active" id="cover" width="300" height="300" alt="Album cover">
         </div>
 
         <h2 id="music-title" aria-label="Music title"></h2>
-        <h3 id="music-artist"  class="visually-hidden" aria-label="Artist name"></h3>
+        <h3 id="music-artist" class="visually-hidden" aria-label="Artist name"></h3>
 
         <div class="player-progress" id="player-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"
             aria-valuenow="0">
@@ -75,7 +77,7 @@
 
     <!-- Load scripts at the end -->
     <script src="script.js" defer></script>
-    <script src="index.js" defer></script>
+
 </body>
 
 </html>

@@ -27,7 +27,7 @@ const defaultSongs = [
     {
         path: 'songs/1.mp3',
         displayName: 'The Charmer\'s Call',
-        cover: 'songs/2.jpg',
+        cover: 'songs/optimized_pic.jpg',
         artist: 'Hanu Dixit',
     },
 ];
@@ -72,7 +72,7 @@ function displayQueue() {
         queueSection.innerHTML = `
             <div class="queue-header">
                 <h3>Queue</h3>
-                <span class="queue-subtitle">Next in queue</span>
+                <span class="queue-subtitle" >Next in queue what </span>
             </div>
         `;
         playlistContainer.parentNode.insertBefore(queueSection, playlistContainer.nextSibling);
@@ -81,7 +81,7 @@ function displayQueue() {
     queueSection.innerHTML = `
         <div class="queue-header">
             <h3>Queue</h3>
-            <span class="queue-subtitle">Next in queue</span>
+            <span class="queue-subtitle">Next in queue what</span>
         </div>
     `;
 
@@ -302,7 +302,7 @@ function displayPlaylist() {
 
         // Add cover image if available
         const coverImg = document.createElement('img');
-        coverImg.src = song.coverUrl || 'songs/2.jpg'; // Add a default cover image path
+        coverImg.src = song.coverUrl || '/songs/optimized_pic.jpg'; // Add a default cover image path
         coverImg.className = 'queue-cover';
         coverImg.alt = `${song.displayName} cover`;
         songInfoDiv.appendChild(coverImg);
@@ -507,7 +507,7 @@ async function handleFileUpload(event) {
                 const newSong = {
                     path: reader.result,
                     displayName: songName,
-                    cover: 'songs/2.jpg',
+                    cover: 'songs/optimized_pic.jpg',
                     artist: 'Unknown Artist',
                     uploadDate: new Date().toISOString(),
                     hash: hash
@@ -686,7 +686,7 @@ style.textContent = `
     }
 
     .queue-subtitle {
-        color: #b3b3b3;
+        color:red;
         font-size: 14px;
     }
 
@@ -782,15 +782,30 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// Add install prompt handling
+// Handle beforeinstallprompt event
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
+
+window.addEventListener('beforeinstallprompt', (event) => {
     // Prevent Chrome 67 and earlier from automatically showing the prompt
-    e.preventDefault();
+    event.preventDefault();
     // Stash the event so it can be triggered later
-    deferredPrompt = e;
-    // Show your install button or UI element here if you have one
+    deferredPrompt = event;
+    // Update UI to notify the user they can add to home screen
+    // You can show your custom install button here
 });
+
+// When you want to show the install prompt (e.g., user clicks an install button)
+function showInstallPrompt() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+            }
+            deferredPrompt = null;
+        });
+    }
+}
 // Add to your JavaScript
 document.addEventListener('DOMContentLoaded', () => {
     // Preload images when needed
@@ -816,10 +831,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset states
         coverImage.classList.remove('loaded');
         skeletonWrapper.classList.remove('hidden');
-        
+
         // Set new image
         coverImage.src = newSrc;
-        
+
         // Handle loading
         if (coverImage.complete) {
             handleImageLoad();
@@ -830,4 +845,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // To use when changing songs:
     // handleImageChange('path/to/new/album/cover.jpg');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const bgContainer = document.querySelector('.background');
+    const playerContainer = document.querySelector('.player-img');
+    const bgImg = bgContainer.querySelector('img');
+    const playerImg = playerContainer.querySelector('img');
+
+    // Load background image
+    bgImg.onload = () => {
+        bgContainer.classList.add('loaded');
+    };
+
+    // Load player image
+    playerImg.onload = () => {
+        playerContainer.classList.add('loaded');
+    };
+
+    // Error handling
+    const handleError = (element) => {
+        element.parentElement.classList.add('error');
+    };
+
+    bgImg.onerror = () => handleError(bgImg);
+    playerImg.onerror = () => handleError(playerImg);
 });

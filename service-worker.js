@@ -1,67 +1,88 @@
-const CACHE_NAME = 'genix-music-player-v1';
-const assetsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './script.js',
-  './manifest.json',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png',
-  './songs/2.jpg',
-  './songs/1.mp3'
+// service-worker.js
+
+const CACHE_NAME = 'music-player-cache-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/script.js',
+  '/manifest.json',
+  '/songs/optimized_pic.jpg',
+  '/img/logo_black-192x192.png',
+  '/img/logo_white-192x192.jpg'
 ];
 
-// Install event
+// Install event - cache initial assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(assetsToCache);
+        console.log('Cache opened');
+        return cache.addAll(ASSETS_TO_CACHE);
       })
-      .then(() => self.skipWaiting()) // Ensure new service worker is activated
+      .catch((error) => {
+        console.error('Cache installation failed:', error);
+      })
   );
 });
 
-// Activate event
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
   );
 });
 
-// Fetch event
+// Fetch event - handle network requests
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (
-          !networkResponse || 
-          networkResponse.status !== 200 || 
-          networkResponse.type !== 'basic'
-        ) {
-          return networkResponse;
+    caches.match(event.request)
+      .then((response) => {
+        // Return cached response if found
+        if (response) {
+          console.log('📂 Serving from cache:', event.request.url);
+          return response;
         }
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        // Clone the request because it can only be used once
+        const fetchRequest = event.request.clone();
 
-        return networkResponse;
-      });
-    })
+        // Make network request and cache the response
+        return fetch(fetchRequest)
+          .then((response) => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response because it can only be used once
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+                console.log('🌍 Fetched and cached:', event.request.url);
+              });
+
+            return response;
+          })
+          .catch((error) => {
+            console.error('Network request failed:', error);
+            // You could return a custom offline page here
+            return new Response('Offline content here', {
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+      })
   );
 });
