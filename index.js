@@ -302,7 +302,7 @@ function displayPlaylist() {
 
         // Add cover image if available
         const coverImg = document.createElement('img');
-        coverImg.src = song.coverUrl || '/songs/2.jpg'; // Add a default cover image path
+        coverImg.src = song.coverUrl || 'songs/2.jpg'; // Add a default cover image path
         coverImg.className = 'queue-cover';
         coverImg.alt = `${song.displayName} cover`;
         songInfoDiv.appendChild(coverImg);
