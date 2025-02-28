@@ -729,9 +729,6 @@ span.queue-subtitle{
         pointer-events: none;
         /* Disables clicks */
     }
-    .remove-from-queue {
-        pointer-events: none;
-    }
 }
 
 
@@ -787,8 +784,5 @@ span.queue-subtitle{
         transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
         z-index: 1000;
         min-width: 250px;
-    }
-    .remove-from-queue {
-        pointer-events: none;
     }
 }
