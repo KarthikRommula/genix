@@ -270,8 +270,7 @@ playlistModal.innerHTML = `
         <span id="close-playlist" class="close-playlist"><i class="fas fa-times"></i></span>
         <h2> Playlist</h2>
         <ul id="playlist-container"></ul>
-        <button id="upload"><i class="fas fa-box-open"></i></button>
-
+        <button id="upload">+</button>
     </div>
 `;
 document.body.appendChild(playlistModal);
@@ -280,6 +279,310 @@ const playlistContainer = document.getElementById('playlist-container');
 const closePlaylistBtn = document.getElementById('close-playlist');
 const uploadBtn = document.getElementById('upload');
 
+
+// Add this function to create and style the search bar
+function createSearchBar() {
+    const searchContainer = document.createElement('div');
+    searchContainer.className = 'search-container';
+    searchContainer.innerHTML = `
+        <div class="search-input-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="playlist-search" placeholder="Search in playlist" class="search-input">
+            <button id="clear-search" class="clear-search-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Insert the search bar before the playlist container
+    const playlistContent = document.querySelector('.playlist-content');
+    playlistContent.insertBefore(searchContainer, playlistContent.querySelector('h2').nextSibling);
+    
+    // Add event listeners for search functionality
+    const searchInput = document.getElementById('playlist-search');
+    const clearButton = document.getElementById('clear-search');
+    
+    // Show/hide clear button based on input content
+    searchInput.addEventListener('input', () => {
+        if (searchInput.value.length > 0) {
+            clearButton.style.display = 'flex';
+            filterPlaylist(searchInput.value);
+        } else {
+            clearButton.style.display = 'none';
+            displayPlaylist(); // Reset to show all songs
+        }
+    });
+    
+    // Clear search functionality
+    clearButton.addEventListener('click', () => {
+        searchInput.value = '';
+        clearButton.style.display = 'none';
+        displayPlaylist(); // Reset to show all songs
+        searchInput.focus();
+    });
+    
+    // Initially hide the clear button
+    clearButton.style.display = 'none';
+}
+
+// Add this function to filter the playlist based on search term
+function filterPlaylist(searchTerm) {
+    if (!playlistContainer) return;
+    playlistContainer.innerHTML = '';
+    
+    // Convert search term to lowercase for case-insensitive search
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Filter songs based on search term
+    const filteredSongs = songs.filter(song => 
+        song.displayName.toLowerCase().includes(searchLower) || 
+        song.artist.toLowerCase().includes(searchLower)
+    );
+    
+    // Display filtered songs
+    if (filteredSongs.length === 0) {
+        // No results found
+        const noResults = document.createElement('div');
+        noResults.className = 'no-search-results';
+        noResults.innerHTML = `
+            <div class="no-results-icon"><i class="fas fa-search"></i></div>
+            <p class="no-results-text">No songs found for "${searchTerm}"</p>
+          
+        `;
+        playlistContainer.appendChild(noResults);
+    } else {
+        // Create songs list with filtered results
+        const songsList = document.createElement('ul');
+        songsList.id = 'queue-list';
+        
+        filteredSongs.forEach((song, index) => {
+            const originalIndex = songs.findIndex(s => 
+                (s.id && s.id === song.id) || 
+                (s.path === song.path && s.displayName === song.displayName)
+            );
+            
+            const songItem = document.createElement('li');
+            songItem.className = 'queue-item';
+            
+            // Create song info container
+            const songInfoDiv = document.createElement('div');
+            songInfoDiv.className = 'queue-item-info';
+            
+            // Add cover image
+            const coverImg = document.createElement('img');
+            coverImg.src = song.cover || 'songs/optimized_pic.jpg';
+            coverImg.className = 'queue-cover';
+            coverImg.alt = `${song.displayName} cover`;
+            songInfoDiv.appendChild(coverImg);
+            
+            // Create text container
+            const textDiv = document.createElement('div');
+            textDiv.className = 'queue-text';
+            
+            // Add title with highlighted search term
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'queue-title';
+            titleSpan.innerHTML = highlightSearchTerm(song.displayName, searchTerm);
+            
+            // Add artist with highlighted search term
+            const artistSpan = document.createElement('span');
+            artistSpan.className = 'queue-artist';
+            artistSpan.innerHTML = highlightSearchTerm(song.artist, searchTerm);
+            
+            textDiv.appendChild(titleSpan);
+            textDiv.appendChild(artistSpan);
+            songInfoDiv.appendChild(textDiv);
+            
+            // Add click event for playing
+            songInfoDiv.addEventListener('click', () => {
+                musicIndex = originalIndex;
+                loadMusic(songs[originalIndex]);
+                playMusic();
+                togglePlaylist();
+            });
+            
+            songItem.appendChild(songInfoDiv);
+            
+            // Create buttons container
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'queue-item-buttons';
+            
+            // Add to queue button
+            const queueBtn = document.createElement('button');
+            queueBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            queueBtn.className = 'remove-from-queue';
+            queueBtn.title = 'Add to Queue';
+            queueBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addToQueue(song);
+            });
+            buttonsDiv.appendChild(queueBtn);
+            
+            // Delete button (if song has ID)
+            if (song?.id) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.className = 'remove-from-queue';
+                deleteBtn.title = 'Delete Song';
+                
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    
+                    const userConfirmed = await showConfirmDialog('Are you sure you want to delete this song?');
+                    if (!userConfirmed) return;
+                    
+                    try {
+                        await deleteSong(song.id);
+                        await loadSongsFromDB();
+                        filterPlaylist(searchTerm); // Re-filter the playlist after deletion
+                        
+                        if (musicIndex === originalIndex) {
+                            musicIndex = 0;
+                            loadMusic(songs[0] || null);
+                            if (isPlaying && songs.length > 0) playMusic();
+                        }
+                        
+                        showNotification('Song deleted successfully', 'success');
+                    } catch (error) {
+                        console.error('Error deleting song:', error);
+                        showNotification('Error deleting song. Please try again.', 'error');
+                    }
+                });
+                
+                buttonsDiv.appendChild(deleteBtn);
+            }
+            
+            songItem.appendChild(buttonsDiv);
+            songsList.appendChild(songItem);
+        });
+        
+        playlistContainer.appendChild(songsList);
+    }
+}
+
+// Helper function to highlight search term in text
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
+    
+    const searchRegex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+    return text.replace(searchRegex, '<span class="highlight">$1</span>');
+}
+
+// Helper function to escape special characters in regex
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Update the togglePlaylist function to initialize the search bar
+const originalTogglePlaylist = togglePlaylist;
+togglePlaylist = function() {
+    originalTogglePlaylist();
+    
+    if (playlistModal.classList.contains('open')) {
+        // Check if search bar already exists
+        if (!document.querySelector('.search-container')) {
+            createSearchBar();
+        }
+    }
+};
+
+// Add styles for search bar and highlighted text
+const searchStyles = document.createElement('style');
+searchStyles.textContent = `
+    .search-container {
+        padding: 16px 16px 8px;
+       
+        top: 0;
+        z-index: 10;
+        background-color:transparent;
+    }
+    
+    .search-input-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background-color: #333;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        color: #b3b3b3;
+    }
+    
+    .search-input {
+        width: 100%;
+        background-color: #333;
+        border: none;
+        padding: 10px 40px 10px 36px;
+        color: white;
+        font-size: 14px;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.5);
+    }
+    
+    .search-input::placeholder {
+        color: #b3b3b3;
+    }
+    
+    .clear-search-btn {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: none;
+        color: #b3b3b3;
+        cursor: pointer;
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .clear-search-btn:hover {
+        color: white;
+    }
+    
+    .highlight {
+        background-color: rgba(29, 185, 84, 0.3);
+        border-radius: 2px;
+    }
+    
+    .no-search-results {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        color: #b3b3b3;
+        text-align: center;
+    }
+    
+    .no-results-icon {
+        font-size: 32px;
+        margin-bottom: 16px;
+        color: #b3b3b3;
+    }
+    
+    .no-results-text {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: white;
+    }
+    
+    .no-results-subtext {
+        font-size: 14px;
+        color: #b3b3b3;
+    }
+    
+  
+`;
+
+document.head.appendChild(searchStyles);
 function displayPlaylist() {
     if (!playlistContainer) return;
     playlistContainer.innerHTML = '';
@@ -287,6 +590,20 @@ function displayPlaylist() {
     // Create main playlist section
     const playlistSection = document.createElement('div');
     playlistSection.id = 'playlist-section';
+    
+    // Add a fixed height with scrolling to the playlist section
+    playlistSection.style.maxHeight = '300px'; // Adjust height as needed
+    playlistSection.style.overflowY = 'auto';
+    playlistSection.style.overflowX = 'hidden';
+
+    // Display songs title
+    const playlistHeader = document.createElement('div');
+    playlistHeader.className = 'playlist-header';
+    
+    const playlistTitle = document.createElement('h3');
+    playlistTitle.textContent = '';
+    playlistHeader.appendChild(playlistTitle);
+    playlistSection.appendChild(playlistHeader);
 
     // Display songs
     const songsList = document.createElement('ul');
@@ -295,6 +612,25 @@ function displayPlaylist() {
     songs.forEach((song, index) => {
         const songItem = document.createElement('li');
         songItem.className = 'queue-item';
+        
+        // Highlight currently playing song with Spotify-like animation indicator
+        if (index === musicIndex && isPlaying) {
+            songItem.classList.add('currently-playing');
+            
+            // Create Spotify-like playing indicator (animated equalizer bars)
+            const playingIndicator = document.createElement('div');
+            playingIndicator.className = 'spotify-playing-indicator';
+            
+            // Create the equalizer bars (Spotify has 3 animated bars)
+            for (let i = 0; i < 3; i++) {
+                const bar = document.createElement('span');
+                bar.className = 'equalizer-bar';
+                playingIndicator.appendChild(bar);
+            }
+            
+            // Add the indicator to the song item
+            songItem.appendChild(playingIndicator);
+        }
 
         // Create song info container
         const songInfoDiv = document.createElement('div');
@@ -306,14 +642,18 @@ function displayPlaylist() {
         coverImg.className = 'queue-cover';
         coverImg.alt = `${song.displayName} cover`;
         songInfoDiv.appendChild(coverImg);
+        
         // Create text container
         const textDiv = document.createElement('div');
         textDiv.className = 'queue-text';
 
-        // Add title
+        // Add title - brighten text color if currently playing (Spotify style)
         const titleSpan = document.createElement('span');
         titleSpan.className = 'queue-title';
         titleSpan.textContent = song.displayName;
+        if (index === musicIndex && isPlaying) {
+            titleSpan.style.color = '#fff'; // Brighter text for playing song (Spotify style)
+        }
 
         // Add artist
         const artistSpan = document.createElement('span');
@@ -387,11 +727,17 @@ function displayPlaylist() {
         songsList.appendChild(songItem);
     });
 
-    playlistContainer.appendChild(songsList);
+    playlistSection.appendChild(songsList);
+    playlistContainer.appendChild(playlistSection);
 
     // Create and display queue section
     const queueSection = document.createElement('div');
     queueSection.id = 'queue-section';
+    
+    // Add a fixed height with scrolling to the queue section as well
+    queueSection.style.maxHeight = '300px'; 
+    queueSection.style.overflowY = 'auto';
+    queueSection.style.overflowX = 'hidden';
 
     const queueHeader = document.createElement('div');
     queueHeader.className = 'queue-header';
@@ -401,6 +747,7 @@ function displayPlaylist() {
 
     const queueSubtitle = document.createElement('div');
     queueSubtitle.className = 'queue-subtitle';
+    queueSubtitle.textContent = queue.length > 0 ? `${queue.length} song(s)` : '';
 
     queueHeader.appendChild(queueTitle);
     queueHeader.appendChild(queueSubtitle);
@@ -412,10 +759,70 @@ function displayPlaylist() {
         queueList.id = 'queue-list';
 
         queue.forEach((song, index) => {
-            // Similar structure as above for queue items
             const queueItem = document.createElement('li');
             queueItem.className = 'queue-item';
-            // ... (repeat similar structure as song items but with remove from queue instead of add to queue)
+
+            // Create song info container
+            const songInfoDiv = document.createElement('div');
+            songInfoDiv.className = 'queue-item-info';
+
+            // Add cover image if available
+            const coverImg = document.createElement('img');
+            coverImg.src = song.coverUrl || '/songs/optimized_pic.jpg';
+            coverImg.className = 'queue-cover';
+            coverImg.alt = `${song.displayName} cover`;
+            songInfoDiv.appendChild(coverImg);
+
+            // Create text container
+            const textDiv = document.createElement('div');
+            textDiv.className = 'queue-text';
+
+            // Add title
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'queue-title';
+            titleSpan.textContent = song.displayName;
+
+            // Add artist
+            const artistSpan = document.createElement('span');
+            artistSpan.className = 'queue-artist';
+            artistSpan.textContent = song.artist;
+
+            textDiv.appendChild(titleSpan);
+            textDiv.appendChild(artistSpan);
+            songInfoDiv.appendChild(textDiv);
+
+            // Add click event to play this queued song
+            songInfoDiv.addEventListener('click', () => {
+                // Remove the song from queue
+                const songToPlay = queue.splice(index, 1)[0];
+                // Play it immediately
+                loadMusic(songToPlay);
+                playMusic();
+                // Refresh the display
+                displayPlaylist();
+            });
+
+            queueItem.appendChild(songInfoDiv);
+
+            // Create buttons container
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'queue-item-buttons';
+
+            // Remove from queue button
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.className = 'remove-from-queue';
+            removeBtn.title = 'Remove from Queue';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                queue.splice(index, 1);
+                displayPlaylist();
+                showNotification('Removed from queue', 'info');
+            });
+            buttonsDiv.appendChild(removeBtn);
+
+            queueItem.appendChild(buttonsDiv);
+            queueList.appendChild(queueItem);
         });
 
         queueSection.appendChild(queueList);
@@ -619,13 +1026,87 @@ playlistBtn.addEventListener('click', togglePlaylist);
 shuffleBtn.addEventListener('click', shuffleSongs);
 
 uploadBtn.addEventListener('click', () => {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'audio/*';
-    fileInput.multiple = true; // Allow multiple file selections
-    fileInput.addEventListener('change', handleFileUpload);
-    fileInput.click();
+    // Create a context menu for upload options
+    const uploadMenu = document.createElement('div');
+    uploadMenu.className = 'upload-menu';
+    uploadMenu.innerHTML = `
+        <button id="upload-files">Upload Files</button>
+        <button id="upload-folder">Upload Folder</button>
+    `;
+    
+    // Position the menu near the upload button
+    const rect = uploadBtn.getBoundingClientRect();
+    uploadMenu.style.position = 'absolute';
+    uploadMenu.style.top = `${rect.bottom + 5}px`;
+    uploadMenu.style.left = `${rect.left}px`;
+    uploadMenu.style.zIndex = '1000';
+    
+    document.body.appendChild(uploadMenu);
+    
+    // Handle file upload option
+    document.getElementById('upload-files').addEventListener('click', () => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'audio/*';
+        fileInput.multiple = true;
+        fileInput.addEventListener('change', handleFileUpload);
+        fileInput.click();
+        uploadMenu.remove();
+    });
+    
+    // Handle folder upload option
+    document.getElementById('upload-folder').addEventListener('click', () => {
+        const folderInput = document.createElement('input');
+        folderInput.type = 'file';
+        folderInput.accept = 'audio/*';
+        folderInput.multiple = true;
+        folderInput.webkitdirectory = true; // This enables folder selection
+        folderInput.addEventListener('change', handleFileUpload);
+        folderInput.click();
+        uploadMenu.remove();
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function closeMenu(e) {
+        if (!uploadMenu.contains(e.target) && e.target !== uploadBtn) {
+            uploadMenu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    });
 });
+
+// Add styling for the upload menu (only once)
+const menuStyle = document.createElement('style');
+menuStyle.textContent = `
+    .upload-menu {
+        background-color: #282828;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        position: absolute;
+        z-index: 1000;
+    }
+    
+    .upload-menu button {
+        display: block;
+        width: 100%;
+        padding: 10px 15px;
+        text-align: left;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .upload-menu button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+`;
+document.head.appendChild(menuStyle);
+document.head.appendChild(menuStyle);
+document.head.appendChild(menuStyle);
+document.head.appendChild(menuStyle);
 // Initialize application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -686,8 +1167,8 @@ style.textContent = `
     }
 
     .queue-subtitle {
-        color:red;
-        font-size: 14px;
+        color:transparent;
+        font-size: 0px;
     }
 
     #queue-list {
@@ -871,3 +1352,276 @@ document.addEventListener('DOMContentLoaded', () => {
     bgImg.onerror = () => handleError(bgImg);
     playerImg.onerror = () => handleError(playerImg);
 });
+// Add this to your script.js
+
+// Register service worker and handle updates
+function registerAndUpdateServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      
+      // When the controller changes (new service worker activated)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        console.log('New service worker activated, reloading page for fresh content');
+        window.location.reload();
+      });
+      
+      // Register service worker
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registered successfully');
+          
+          // Check for updates periodically (every 60 minutes)
+          setInterval(() => {
+            registration.update()
+              .then(() => {
+                console.log('Service worker update check completed');
+              })
+              .catch(err => {
+                console.error('Service worker update check failed:', err);
+              });
+          }, 60 * 60 * 1000);
+          
+          // Check for waiting service worker
+          if (registration.waiting) {
+            console.log('New service worker waiting');
+            showUpdateUI(registration.waiting);
+          }
+          
+          // Listen for new service workers
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            console.log('New service worker installing');
+            
+            newWorker.addEventListener('statechange', () => {
+              // When the new service worker is installed but waiting
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New service worker installed and waiting');
+                showUpdateUI(newWorker);
+              }
+            });
+          });
+          
+          // Check current version
+          checkServiceWorkerVersion(registration);
+        })
+        .catch(error => {
+          console.error('ServiceWorker registration failed:', error);
+        });
+    }
+  }
+  
+  // Function to check service worker version
+  function checkServiceWorkerVersion(registration) {
+    if (!navigator.serviceWorker.controller) {
+      console.log('No active service worker found');
+      return;
+    }
+    
+    // Create a message channel for the response
+    const messageChannel = new MessageChannel();
+    
+    // Set up message handler
+    messageChannel.port1.onmessage = (event) => {
+      if (event.data.version) {
+        console.log('Current service worker version:', event.data.version);
+        
+        // Store version in localStorage for comparison
+        const storedVersion = localStorage.getItem('swVersion');
+        if (storedVersion && storedVersion !== event.data.version) {
+          console.log(`Version changed from ${storedVersion} to ${event.data.version}`);
+          showNotification('Application updated to version ' + event.data.version, 'info');
+        }
+        localStorage.setItem('swVersion', event.data.version);
+      }
+    };
+    
+    // Send the message
+    navigator.serviceWorker.controller.postMessage({
+      type: 'CHECK_VERSION'
+    }, [messageChannel.port2]);
+  }
+  
+  // Function to show update UI
+  function showUpdateUI(worker) {
+    // Create update notification with refresh button
+    const updateNotification = document.createElement('div');
+    updateNotification.className = 'notification update';
+    updateNotification.innerHTML = `
+      <div class="notification-content">
+        <span class="notification-icon">🔄</span>
+        <span class="notification-message">Update available! Refresh to load the latest version.</span>
+      </div>
+      <button id="update-app-btn" class="notification-btn">Update Now</button>
+    `;
+    
+    document.body.appendChild(updateNotification);
+    
+    // Add event listener to update button
+    document.getElementById('update-app-btn').addEventListener('click', () => {
+      // Tell service worker to skip waiting
+      worker.postMessage({ type: 'SKIP_WAITING' });
+      
+      // Hide the notification
+      updateNotification.classList.add('fade-out');
+      setTimeout(() => {
+        updateNotification.remove();
+      }, 300);
+    });
+    
+    // Add style for update notification if needed
+    if (!document.getElementById('update-notification-style')) {
+      const style = document.createElement('style');
+      style.id = 'update-notification-style';
+      style.textContent = `
+        .notification.update {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: #1db954;
+          color: white;
+          border-radius: 8px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          z-index: 10000;
+          animation: slideIn 0.3s ease-out forwards;
+          max-width: 400px;
+        }
+        
+        @keyframes slideIn {
+          from { transform: translateY(100px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .notification.update.fade-out {
+          animation: fadeOut 0.3s ease-in forwards;
+        }
+        
+        @keyframes fadeOut {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(20px); opacity: 0; }
+        }
+        
+        .notification-content {
+          display: flex;
+          align-items: center;
+          margin-right: 16px;
+        }
+        
+        .notification-icon {
+          margin-right: 12px;
+          font-size: 20px;
+        }
+        
+        .notification-btn {
+          background: white;
+          color: #1db954;
+          border: none;
+          padding: 8px 12px;
+          border-radius: 4px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .notification-btn:hover {
+          background: #f0f0f0;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  // Call this function when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', registerAndUpdateServiceWorker);
+  
+  // Create an offline.html page (optional but recommended)
+  function createOfflinePage() {
+    if (!navigator.serviceWorker) return;
+    
+    fetch('/offline.html')
+      .catch(() => {
+        // Create offline.html if it doesn't exist
+        const offlineContent = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Offline - Music Player</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+                background-color: #121212;
+                color: white;
+                text-align: center;
+              }
+              
+              h1 {
+                margin-bottom: 10px;
+              }
+              
+              p {
+                margin-bottom: 30px;
+                color: #b3b3b3;
+              }
+              
+              button {
+                background-color: #1db954;
+                color: white;
+                border: none;
+                border-radius: 30px;
+                padding: 12px 30px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              }
+              
+              button:hover {
+                background-color: #1ed760;
+              }
+              
+              .offline-icon {
+                font-size: 60px;
+                margin-bottom: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="offline-icon">📡</div>
+            <h1>You're offline</h1>
+            <p>We can't load the music player right now because you're not connected to the internet.</p>
+            <button onclick="window.location.reload()">Try Again</button>
+          </body>
+          </html>
+        `;
+        
+        // Create a blob from the content
+        const blob = new Blob([offlineContent], { type: 'text/html' });
+        
+        // Use service worker to cache the offline page
+        navigator.serviceWorker.ready.then(registration => {
+          caches.open(CACHE_NAME).then(cache => {
+            const offlineResponse = new Response(blob, { 
+              headers: { 'Content-Type': 'text/html' }
+            });
+            cache.put('/offline.html', offlineResponse);
+            console.log('Offline page created and cached');
+          });
+        });
+      });
+  }
+  
+  // Call this function as well
+  window.addEventListener('load', createOfflinePage);
